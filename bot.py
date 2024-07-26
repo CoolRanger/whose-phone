@@ -1,11 +1,16 @@
 import discord
 from discord import app_commands
 import random
-import jpgrammar
-from discord.ext import commands
-from typing import Optional
-from discord.app_commands import Choice
+import datetime
 import asyncio
+import jpgrammar
+import stocks_news_crawler
+from discord.ext import commands, tasks
+from typing import Optional
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
+
+
 
 intents = discord.Intents.default()
 intents.messages = True
@@ -18,6 +23,16 @@ keywords_responses = {
     '狗叫': '汪汪汪',
 }
 
+@tasks.loop(minutes=1) 
+async def send_daily_stock_news():
+    now = datetime.datetime.now()
+    if now.hour == 9 and now.minute == 00:
+        channel = bot.get_channel(1266418314322907158)
+        if channel:
+            new_lists = stocks_news_crawler.get_news_list()
+            await channel.send("以下是最新股市新聞\n")
+            for i in new_lists:
+                await channel.send(i)
 
 f = open("tk.txt")
 token = f.read()
@@ -32,6 +47,7 @@ async def on_ready():
     global jpgrammar_all
     jpgrammar_all = [jpgrammar.N1, jpgrammar.N2, jpgrammar.N3, jpgrammar.N123]
     print("已載入日檢文法清單")
+    send_daily_stock_news.start()
 
 @bot.event
 async def on_message(message):
