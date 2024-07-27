@@ -68,7 +68,7 @@ async def on_message(message):
         await message.delete()
         await channel.send(f"```{cont}```")
     
-    await bot.process_commands(message)  # 確保命令仍然可以正常工作
+    await bot.process_commands(message) 
 
 
 
@@ -90,6 +90,22 @@ async def getrandnum(interaction: discord.Interaction, start: int, end: int):
     await asyncio.sleep(1)
     await channel.send(random.randint(start, end))
 
+@bot.tree.command(name="jp_grammar_search", description="搜尋日文文法")
+@app_commands.describe(keyword="輸入關鍵字")
+async def search_jpgrammar(interaction: discord.Interaction, keyword: str):
+    result = []
+    channel = bot.get_channel(interaction.channel_id)
+    await interaction.response.send_message(f"正在搜尋包含{keyword}的內容...")
+    await asyncio.sleep(1)
+    for title in jpgrammar_all[3]:
+        if keyword in title:
+            result.append(title)
+    if len(result) == 0:
+        await interaction.edit_original_response("查無結果")
+        return
+    await interaction.edit_original_response(content=f"找到{len(result)}則相關內容")
+    for title in result:
+        await channel.send(jpgrammar_all[3][title])
 
 
 @bot.tree.command(name='japanese_grammar', description='學習日文文法')
@@ -102,6 +118,7 @@ async def getrandnum(interaction: discord.Interaction, start: int, end: int):
 ])
 
 async def jp_grammar(interaction: discord.Interaction, level: app_commands.Choice[int]):
+
 
     def check(reaction, user):
         return user == interaction.user and str(reaction.emoji) in ['✅', '❌'] and reaction.message.id == message.id
@@ -127,7 +144,6 @@ async def jp_grammar(interaction: discord.Interaction, level: app_commands.Choic
         try:
             reaction, user = await bot.wait_for('reaction_add', timeout=60.0, check=check)
             if str(reaction.emoji) == '✅':
-                # 用户点击了打勾，重新推荐
                 await message.clear_reactions()
                 random_grammar = random.choice(rand_list)
                 await message.edit(content=f"正在重新推薦一部{list_name}文法影片給{customer}")
@@ -136,7 +152,6 @@ async def jp_grammar(interaction: discord.Interaction, level: app_commands.Choic
                 await message.add_reaction('✅')
                 await message.add_reaction('❌')
             elif str(reaction.emoji) == '❌':
-                # 用户点击了叉叉，输出当前键的值
                 await message.clear_reactions()
                 grammar_value = jpgrammar_all[lvl][random_grammar]
                 await message.edit(content=f'推薦內容: {random_grammar}\n網址: {grammar_value}')
