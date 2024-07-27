@@ -26,7 +26,7 @@ keywords_responses = {
 @tasks.loop(minutes=1) 
 async def send_daily_stock_news():
     now = datetime.datetime.now()
-    if now.hour == 9 and now.minute == 00:
+    if now.hour == 1 and now.minute == 0:
         channel = bot.get_channel(1266418314322907158)
         if channel:
             new_lists = stocks_news_crawler.get_news_list()
@@ -61,17 +61,35 @@ async def on_message(message):
         if keyword in message.content.lower() and not message.content.startswith(bot.command_prefix):
             await message.channel.send(response)
             break  # 如果找到匹配的關鍵字，就停止搜尋
-
+    
+    if message.channel.id == 1266659148154802186:
+        channel = bot.get_channel(1266659148154802186)
+        cont = message.content
+        await message.delete()
+        await channel.send(f"```{cont}```")
+    
     await bot.process_commands(message)  # 確保命令仍然可以正常工作
+
 
 
 @bot.tree.command(name="truth")
 async def truth(interaction: discord.Interaction):
     await interaction.response.send_message("Ranger is handsome")
 
-@bot.tree.command(name="nottruth")
-async def nottruth(interaction: discord.Interaction):
-    await interaction.response.send_message("py is handsome")
+
+@bot.tree.command(name="randnum", description="get a random number")
+@app_commands.describe(start="from", end="to")
+async def getrandnum(interaction: discord.Interaction, start: int, end: int):
+    channel = bot.get_channel(interaction.channel_id)
+    await interaction.response.send_message(f"正在從 {start} 到 {end} 中挑一個數字")
+    await asyncio.sleep(1)
+    if start>end:
+        await channel.send("不要耍白癡")
+        return
+    await channel.send("施法中...")
+    await asyncio.sleep(1)
+    await channel.send(random.randint(start, end))
+
 
 
 @bot.tree.command(name='japanese_grammar', description='學習日文文法')
@@ -141,7 +159,6 @@ async def yesorno(ctx, *, question=None):
         response = random.choice(['Yes', 'No'])
         await ctx.send(response)
     
-#async def japanesegrammar()
 
 
 
