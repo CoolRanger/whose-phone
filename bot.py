@@ -4,6 +4,7 @@ import random
 import datetime
 import asyncio
 import jpgrammar
+import jp_vocabulary
 import stocks_news_crawler
 from discord.ext import commands, tasks
 from typing import Optional
@@ -48,6 +49,7 @@ async def on_ready():
     jpgrammar_all = [jpgrammar.N1, jpgrammar.N2, jpgrammar.N3, jpgrammar.N123]
     print("已載入日檢文法清單")
     send_daily_stock_news.start()
+    jp_vocabulary.initialize()
 
 @bot.event
 async def on_message(message):
@@ -160,7 +162,89 @@ async def jp_grammar(interaction: discord.Interaction, level: app_commands.Choic
             await message.clear_reactions()
             await message.edit(content='操作超時。請不要浪費我時間。')
             break
+
+@bot.tree.command(name='japanese_vocabulary', description='日文單字庫系統')
+@app_commands.describe(reqcode='功能')
+@app_commands.choices(reqcode=[
+    app_commands.Choice(name='使用者註冊', value=0),
+    app_commands.Choice(name='新增單字', value=1),
+    app_commands.Choice(name='刪除單字', value=2),
+    app_commands.Choice(name='新增例句', value=3),
+    app_commands.Choice(name='查詢單字資訊', value=7),
+    app_commands.Choice(name='查詢單字數量', value=4),
+    app_commands.Choice(name='單字列表', value=5),
+    app_commands.Choice(name='隨機抽單字', value=6),
+])
+
+async def jp_voc(interaction: discord.Interaction, reqcode: app_commands.Choice[int]):
+    def check(msg):
+            return msg.author == interaction.user and msg.channel == interaction.channel
     
+    v = reqcode.value
+    user_name = interaction.user.name
+    if v == 0:
+        if jp_vocabulary.add_user(user_name):
+            await interaction.response.send_message(f"{user_name}已成功新增至資料庫")
+        else:
+            await interaction.response.send_message(f"該使用者已存在")
+        
+                                                
+    elif v == 1:
+        await interaction.response.send_message("請輸入你要新增的單字、假名和意思(用空格隔開)")
+        try:
+            msg = await bot.wait_for('message', timeout=60.0, check=check)
+            user_input = msg.content
+            word = user_input.split()
+            if len(word)!=3:
+                await interaction.followup.send(f"輸入格式錯誤")
+            else:
+                await interaction.followup.send(jp_vocabulary.add_voc(user_name, word))
+            
+        except asyncio.TimeoutError:
+            await interaction.followup.send("請求超時，請重新執行命令。")
+
+    elif v == 2:
+        await interaction.response.send_message("請輸入你要刪除的單字")
+        try:
+            msg = await bot.wait_for('message', timeout=60.0, check=check)
+            user_input = msg.content
+            await interaction.followup.send(jp_vocabulary.del_voc(user_name, user_input))
+            
+        except asyncio.TimeoutError:
+            await interaction.followup.send("請求超時，請重新執行命令。")
+
+    elif v == 3:
+        voc = ""
+        sentence = ""
+        await interaction.response.send_message("請輸入要加入的單字")
+        try:
+            msg = await bot.wait_for('message', timeout=60.0, check=check)
+            voc = msg.content
+        except asyncio.TimeoutError:
+            await interaction.followup.send("請求超時，請重新執行命令。")
+        await interaction.followup.send("請輸入例句。")
+        try:
+            msg = await bot.wait_for('message', timeout=60.0, check=check)
+            sentence = msg.content
+        except asyncio.TimeoutError:
+            await interaction.followup.send("請求超時，請重新執行命令。")
+        await interaction.followup.send(jp_vocabulary.add_sentence(user_name, voc, sentence))
+        
+    elif v == 4:
+        await interaction.response.send_message(jp_vocabulary.inquire_voc_num(user_name)) 
+    elif v == 5:
+        await interaction.response.send_message(jp_vocabulary.voc_list(user_name)) 
+    elif v == 6:
+        await interaction.response.send_message(jp_vocabulary.voc_test(user_name))
+    elif v == 7:
+        voc = ""
+        await interaction.response.send_message("請輸入要查詢的單字")
+        try:
+            msg = await bot.wait_for('message', timeout=60.0, check=check)
+            voc = msg.content
+        except asyncio.TimeoutError:
+            await interaction.followup.send("請求超時，請重新執行命令。")
+        await interaction.followup.send(jp_vocabulary.inquire_voc_info(user_name, voc))
 
 
 
